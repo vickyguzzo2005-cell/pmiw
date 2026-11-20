@@ -1,6 +1,7 @@
 let velocidadAnimacion = 90;
 let tiempo;
 let fondo;
+let pantalladeinicio;
 let desplazamiento;
 let imagenesdeshagy = [];
 let indiceshagy = 0;
@@ -42,14 +43,20 @@ let seleccion;
 let fondobosque;
 let fondoCabana;
 let fondoActual;
-
+let llegaronDestinoDerecha = false;
+let llegaronDestinoIzquierda = false;
+let mostrarFinal = false;
+let mostrarCreditos = false;
+let mostrarInicio = true;
+let posicionLimiteDerecha = 3000;
 let caminoElegido = false;
+let vueltasCaminata = 0;
 
 let personaje = ["Pandilla", "Fred", "Daphne"];
 
 let textoPandilla = [
   "¿Qué ocurrió?",
-  "Disculpe señor, ¿Usted sabe algo de lo que ocurrió?",
+  "Disculpa fred, ¿Usted sabe algo de lo que ocurrió?",
   "Vimos algo raro, vamos a investigar juntos"
 ];
 
@@ -67,6 +74,7 @@ let textoDaf = [
 
 function preload() {
   fondo = loadImage('assets/fondoferia.png');
+  pantalladeinicio = loadImage('assets/pantalladeinicio.jpg');
 
   for (let i = 0; i < 9; i++) {
     imagenesdeshagy[i] = loadImage('assets/shagy' + (i + 1) + '.png');
@@ -95,27 +103,38 @@ function preload() {
 function setup() {
   createCanvas(800, 450);
   textSize(20);
-  frameHistoria = 0;
-  hablaPandilla = true;
-  hablaFred = false;
-  hablaDaf = false;
-  textoAPandilla = 0;
-  textoAFred = 0;
-  textoADaf = 0;
-  minTexto = 0;
-  maxTexto = 0;
-  sePuedeElegir = false;
+  reiniciarJuego();
+  mostrarInicio = true;
 }
 
 function draw() {
-  console.log("frameHistoria vale:", frameHistoria);
   background(0);
+
+  if (mostrarInicio) {
+    image(pantalladeinicio, 0, 0, 800, 450);
+
+    stroke(255);
+    strokeWeight(3);
+    fill(40, 20, 60, 230);
+    rect(300, 330, 200, 65, 15);
+
+    noStroke();
+    fill(255);
+    textSize(25);
+    textAlign(CENTER);
+    text("INICIAR", 400, 371);
+    textAlign(LEFT);
+
+    return;
+  }
+
+  console.log("frameHistoria vale:", frameHistoria);
+
   let desplazamiento = (millis() / velocidadAnimacion) % 800;
 
   image(fondoActual, -desplazamiento, 0, 800, 600);
   image(fondoActual, -desplazamiento + 800, 0, 800, 600);
 
-  
   if (aparecefred && !caminoElegido) {
     image(imagenesfred[0], posicionxfred, 250, 160, 200);
   }
@@ -124,7 +143,6 @@ function draw() {
     image(imagenesdaphne[0], posicionxdaphne, 250, 160, 200);
   }
 
-  
   if (posicionxscoby > 900 && !aparecedaphne && !mostrarOpciones && !caminoElegido && !aparecefred) {
     aparecefred = true;
     posicionx = -100;
@@ -167,7 +185,7 @@ function draw() {
 
   tiempo = millis() / 250;
 
-  if (!detenerse && !detenidodaphne && !mostrarOpciones) {
+  if (!detenerse && !detenidodaphne && !mostrarOpciones && !llegaronDestinoDerecha && !llegaronDestinoIzquierda && (!caminoElegido || caminandoDespuesDaphne)) {
     indiceshagy = floor(tiempo) % 9;
     posicionx = posicionx + velocidadcaminar;
   } else {
@@ -178,7 +196,7 @@ function draw() {
 
   tiempovelma = millis() / 260;
 
-  if (!detenerse && !detenidodaphne && !mostrarOpciones) {
+  if (!detenerse && !detenidodaphne && !mostrarOpciones && !llegaronDestinoDerecha && !llegaronDestinoIzquierda && (!caminoElegido || caminandoDespuesDaphne)) {
     indicevelma = floor(tiempovelma) % 8;
     posicionxvelma = posicionxvelma + velocidadcaminarvelma;
   } else {
@@ -189,7 +207,7 @@ function draw() {
 
   tiemposcoby = millis() / 250;
 
-  if (!detenerse && !detenidodaphne && !mostrarOpciones) {
+  if (!detenerse && !detenidodaphne && !mostrarOpciones && !llegaronDestinoDerecha && !llegaronDestinoIzquierda && (!caminoElegido || caminandoDespuesDaphne)) {
     indicescoby = floor(tiemposcoby) % 9;
     posicionxscoby = posicionxscoby + velocidaddescoby;
   } else {
@@ -203,7 +221,7 @@ function draw() {
     dibujarCajaDeTexto();
   }
 
-  if (caminandoDespuesDaphne && posicionx > 650) {
+  if (caminandoDespuesDaphne && posicionx > 650 && !caminoElegido) {
     caminandoDespuesDaphne = false;
     mostrarOpciones = true;
     sePuedeElegir = true;
@@ -224,6 +242,77 @@ function draw() {
     text("ir a la derecha", 400, 260);
     textAlign(LEFT);
   }
+
+  if (caminoElegido && caminandoDespuesDaphne) {
+    if (vueltasCaminata == 0 && posicionx > 850) {
+      posicionx = -100;
+      posicionxvelma = -180;
+      posicionxscoby = -260;
+      vueltasCaminata = 1;
+    }
+    else if (vueltasCaminata == 1 && posicionx > 150) {
+      caminandoDespuesDaphne = false;
+
+      if (seleccion == "derecha") {
+        llegaronDestinoDerecha = true;
+        llegaronDestinoIzquierda = false;
+      }
+
+      if (seleccion == "izquierda") {
+        llegaronDestinoIzquierda = true;
+        llegaronDestinoDerecha = false;
+      }
+
+      mostrarFinal = true;
+    }
+  }
+
+  if (mostrarFinal && !mostrarCreditos) {
+    stroke(255);
+    strokeWeight(3);
+    fill(40, 20, 60, 230);
+    rect(140, 150, 520, 130, 20);
+
+    noStroke();
+    fill(255);
+    textSize(22);
+    textAlign(CENTER);
+
+    if (seleccion == "derecha") {
+      text("Final uno: llegaron a la guarida del asesino", 400, 220);
+    }
+
+    if (seleccion == "izquierda") {
+      text("Final dos: se encontraron con lobos y murieron", 400, 220);
+    }
+
+    textSize(16);
+    text("Hacé clic para continuar", 400, 250);
+  }
+
+  if (mostrarCreditos) {
+    background(0);
+    fill(255);
+    textAlign(CENTER);
+    textSize(32);
+    text("CRÉDITOS", 400, 150);
+
+    textSize(22);
+    text("Hecho por Julieta Martinez y Victoria Guzzo", 400, 220);
+    text("Comisión: 2", 400, 270);
+
+    stroke(255);
+    strokeWeight(3);
+    fill(40, 20, 60, 230);
+    rect(275, 330, 250, 60, 15);
+
+    noStroke();
+    fill(255);
+    textSize(20);
+    text("VOLVER AL INICIO", 400, 367);
+  }
+
+  textAlign(LEFT);
 }
 
 function momentoEnLaHistoria() {
@@ -325,6 +414,28 @@ function dibujarCajaDeTexto() {
 }
 
 function mousePressed() {
+  if (mostrarInicio) {
+    if (mouseX > 300 && mouseX < 500 && mouseY > 330 && mouseY < 395) {
+      reiniciarJuego();
+      mostrarInicio = false;
+    }
+    return;
+  }
+
+  if (mostrarFinal && !mostrarCreditos) {
+    mostrarFinal = false;
+    mostrarCreditos = true;
+    return;
+  }
+
+  if (mostrarCreditos) {
+    if (mouseX > 275 && mouseX < 525 && mouseY > 330 && mouseY < 390) {
+      reiniciarJuego();
+      mostrarInicio = true;
+    }
+    return;
+  }
+
   if (detenerse || detenidodaphne) {
     if (!sePuedeElegir) return;
 
@@ -350,9 +461,18 @@ function mousePressed() {
       seleccion = "izquierda";
       fondoActual = fondobosque;
 
-      
       aparecefred = false;
       caminoElegido = true;
+      caminandoDespuesDaphne = true;
+      vueltasCaminata = 0;
+      llegaronDestinoDerecha = false;
+      llegaronDestinoIzquierda = false;
+      mostrarFinal = false;
+      mostrarCreditos = false;
+
+      posicionx = -100;
+      posicionxvelma = -180;
+      posicionxscoby = -260;
 
       musicaCirco.stop();
       musicabosque.loop();
@@ -364,9 +484,18 @@ function mousePressed() {
       seleccion = "derecha";
       fondoActual = fondoCabana;
 
-   
       aparecefred = false;
       caminoElegido = true;
+      caminandoDespuesDaphne = true;
+      vueltasCaminata = 0;
+      llegaronDestinoDerecha = false;
+      llegaronDestinoIzquierda = false;
+      mostrarFinal = false;
+      mostrarCreditos = false;
+
+      posicionx = -100;
+      posicionxvelma = -180;
+      posicionxscoby = -260;
 
       musicaCirco.stop();
       musicabosque.loop();
@@ -376,8 +505,55 @@ function mousePressed() {
   }
 }
 
+function reiniciarJuego() {
+  musicaCirco.stop();
+  musicabosque.stop();
+
+  fondoActual = fondo;
+
+  indiceshagy = 0;
+  posicionx = -100;
+  indicevelma = 0;
+  posicionxvelma = -180;
+  indicescoby = 0;
+  posicionxscoby = -260;
+
+  posicionxdaphne = 650;
+  aparecedaphne = false;
+  detenidodaphne = false;
+
+  posicionxfred = 600;
+  aparecefred = false;
+  detenerse = false;
+
+  frameHistoria = 0;
+  hablaPandilla = true;
+  hablaFred = false;
+  hablaDaf = false;
+
+  textoAPandilla = 0;
+  textoAFred = 0;
+  textoADaf = 0;
+  minTexto = 0;
+  maxTexto = 0;
+
+  sePuedeElegir = false;
+  mostrarOpciones = false;
+  caminandoDespuesDaphne = false;
+
+  seleccion = "";
+  llegaronDestinoDerecha = false;
+  llegaronDestinoIzquierda = false;
+
+  mostrarFinal = false;
+  mostrarCreditos = false;
+
+  caminoElegido = false;
+  vueltasCaminata = 0;
+}
+
 function keyPressed() {
-  if (key == 'p') {
+  if (key == 'p' && !mostrarInicio) {
     musicaCirco.loop();
   }
-}
+  }
